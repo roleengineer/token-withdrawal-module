@@ -92,23 +92,40 @@ contract TokenWithdrawalModule {
     }
 
     /*//////////////////////////////////////////////////////////////
-                          VIEW FUNCTIONS
+                          EIP-712 FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /**
-     * @notice View method returns something.
-     * @param someparam description.
-     * @return somereturndata description.
+     * @notice Encodes the withdrawal permit data into a EIP-712 message (ready to be hashed and sign).
+     * @param receiver Beneficiary address.
+     * @param amount Token amount to be transfered.
+     * @param deadline Expiration timestamp.
+     * @param nonce Beneficiary nonce.
+     * @return EIP-712 message (66 bytes), ready to be hashed and signed.
      */
-    function getSomething(bytes32 someparam) external view returns (bytes memory somereturndata) {
-        somereturndata = "";
+    function encodeWithdrawalPermitData(address receiver, uint256 amount, uint256 deadline, uint256 nonce)
+        public
+        view
+        returns (bytes memory)
+    {
+        bytes32 withdrawalPermitHash =
+            keccak256(abi.encode(WITHDRAWAL_PERMIT_TYPEHASH, receiver, amount, deadline, nonce));
+        return abi.encodePacked(bytes1(0x19), bytes1(0x01), DOMAIN_SEPARATOR, withdrawalPermitHash);
     }
 
-    /*//////////////////////////////////////////////////////////////
-                        INTERNAL FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function _getSomething(uint256 index) internal returns (uint256 something) {
-        something = 0;
+    /**
+     * @notice Returns withdrawal permit hash, ready to be signed.
+     * @param receiver Beneficiary address.
+     * @param amount Token amount to be transfered.
+     * @param deadline Expiration timestamp.
+     * @param nonce Beneficiary nonce.
+     * @return Withdrawal permit hash.
+     */
+    function getWithdrawalPermitHash(address receiver, uint256 amount, uint256 deadline, uint256 nonce)
+        public
+        view
+        returns (bytes32)
+    {
+        return keccak256(encodeWithdrawalPermitData(receiver, amount, deadline, nonce));
     }
 }
