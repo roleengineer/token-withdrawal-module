@@ -12,8 +12,11 @@ error SomeError();
  *                     of a specific token.
  */
 contract TokenWithdrawalModule {
-    struct SomeStruct {
+    struct WithdrawalPermit {
+        address receiver;
         uint256 amount;
+        uint256 deadline;
+        uint256 nonce;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -31,6 +34,25 @@ contract TokenWithdrawalModule {
     /// @notice Token contract address, which this module is specific to.
     address public token;
 
+    /// @notice Version of current implementation.
+    string public constant VERSION = "1";
+
+    /// @notice Typehash of EIP712 domain separator.
+    /// @dev keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")
+    bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
+        0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f;
+
+    /// @notice Typehash of a WithdrawalPermit struct.
+    /// @dev keccak256("WithdrawalPermit(address receiver,uint256 amount,uint256 deadline,uint256 nonce)")
+    bytes32 public constant WITHDRAWAL_PERMIT_TYPEHASH =
+        0x376ec1ee7725c08b84c4815757b4bc9078f548d4828e39acaed2a574e0738a13;
+
+    /// @notice EIP-712 domain separator.
+    bytes32 public immutable DOMAIN_SEPARATOR;
+
+    /// @notice Mapping to keep track the nonce of all receivers.
+    mapping(address => uint256) public nonces;
+
     /*//////////////////////////////////////////////////////////////
                             CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -43,6 +65,15 @@ contract TokenWithdrawalModule {
     constructor(address payable _safe, address _token) {
         safe = Safe(_safe);
         token = _token;
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                DOMAIN_SEPARATOR_TYPEHASH,
+                keccak256(bytes(type(TokenWithdrawalModule).name)),
+                keccak256(bytes(VERSION)),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -56,10 +87,7 @@ contract TokenWithdrawalModule {
      * @param signatures List of signatures.
      * @return True
      */
-    function withdrawFromSafe(address receiver, uint256 amount, bytes memory signatures)
-        external
-        returns (bool)
-    {
+    function withdrawFromSafe(address receiver, uint256 amount, bytes memory signatures) external returns (bool) {
         return true;
     }
 
@@ -72,11 +100,7 @@ contract TokenWithdrawalModule {
      * @param someparam description.
      * @return somereturndata description.
      */
-    function getSomething(bytes32 someparam)
-        external
-        view
-        returns (bytes memory somereturndata)
-    {
+    function getSomething(bytes32 someparam) external view returns (bytes memory somereturndata) {
         somereturndata = "";
     }
 
@@ -84,11 +108,7 @@ contract TokenWithdrawalModule {
                         INTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function _getSomething(uint256 index)
-        internal
-        returns (uint256 something)
-    {
+    function _getSomething(uint256 index) internal returns (uint256 something) {
         something = 0;
     }
-
 }
