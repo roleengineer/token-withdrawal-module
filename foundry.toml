@@ -2,5 +2,17 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-
+gas_reports = ["*"]
+verbosity = 1
+evm_version = "shanghai"
+solc = "0.8.20"
+[rpc_endpoints]
+mainnet = "${ETH_NODE_URI_MAINNET}"
+goerli = "${ETH_NODE_URI_GOERLI}"
+[etherscan]
+mainnet = { key = "${ETHERSCAN_KEY}"}
+goerli = { key = "${ETHERSCAN_KEY}"}
+[fuzz]
+runs = 256
+[profile.special]
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
