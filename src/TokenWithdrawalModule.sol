@@ -2,9 +2,16 @@
 pragma solidity ^0.8.20;
 
 import {Safe} from "safe-contracts/Safe.sol";
+import {Enum} from "safe-contracts/common/Enum.sol";
 
-/// Error description.
-error SomeError();
+interface IERC20 {
+  function balanceOf(address) external returns(uint256);
+}
+
+/// Signed permission to withdraw tokens from a Safe is expired.
+error WithdrawalPermitExpired();
+/// Token withdrawals is not possible due to Safe token balance is less than requested.
+error InsufficientSafeBalance();
 
 /**
  * @title TokenWithdrawalModule - Safe module, which allows accounts that are
@@ -22,7 +29,8 @@ contract TokenWithdrawalModule {
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
-    event SomeEvent(uint256 indexed someIndex);
+    event TokenWithdrawalSuccess(address indexed beneficiary, uint256 indexed amount, uint256 indexed nonce);
+    event TokenWithdrawalFailure(address indexed beneficiary, uint256 indexed amount, uint256 indexed nonce);
 
     /*//////////////////////////////////////////////////////////////
                             MODULE STORAGE
@@ -62,8 +70,8 @@ contract TokenWithdrawalModule {
      * @param _safe Safe proxy address.
      * @param _token Token address.
      */
-    constructor(address payable _safe, address _token) {
-        safe = Safe(_safe);
+    constructor(Safe _safe, address _token) {
+        safe = _safe;
         token = _token;
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
@@ -77,18 +85,43 @@ contract TokenWithdrawalModule {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            WITHDRWAW LOGIC
+                            WITHDRAWAL LOGIC
     //////////////////////////////////////////////////////////////*/
     /**
      * @notice Method allows to withdraw `token` tokens from Safe 'safe'.
-     * @dev Some dev info.
+     * @dev Signatures verification is assigned to Safe, means that approveHash must be called on Safe.
      * @param receiver Beneficiary address.
-     * @param amount to withdraw.
-     * @param signatures List of signatures.
-     * @return True
+     * @param amount Token amount to withdraw from Safe.
+     * @param signatures Signature data produced by Safe owners.
+     *                   Can be packed ECDSA signature ({bytes32 r}{bytes32 s}{uint8 v}),
+     *                   contract signature (EIP-1271) or approved hash.
+     * @return success Returns true, if token token transfer is successful.
      */
-    function withdrawFromSafe(address receiver, uint256 amount, bytes memory signatures) external returns (bool) {
-        return true;
+    function withdrawFromSafe(address receiver, uint256 amount, uint256 deadline, bytes memory signatures)
+        external
+        returns (bool success)
+    {
+        if (deadline < block.timestamp) revert WithdrawalPermitExpired();
+        if (IERC20(token).balanceOf(address(safe)) < amount) revert InsufficientSafeBalance();
+
+        uint256 receiverNonce = nonces[receiver];
+
+        bytes memory withdrawalPermitMessage = encodeWithdrawalPermitData(receiver, amount, deadline, receiverNonce);
+
+        // Increase receiver nonce.
+        nonces[receiver]++;
+
+        bytes32 withdrawalPermitHash = keccak256(withdrawalPermitMessage);
+
+        // Ask safe to check signatures.
+        safe.checkSignatures(withdrawalPermitHash, withdrawalPermitMessage, signatures);
+
+        bytes memory tokenTransferData = abi.encodeWithSignature("transfer(address,uint256)", receiver, amount);
+
+        // Ask safe to execute token transfer.
+        success = safe.execTransactionFromModule(token, 0, tokenTransferData, Enum.Operation.Call);
+        if (success) emit TokenWithdrawalSuccess(receiver, amount, receiverNonce);
+        else emit TokenWithdrawalFailure(receiver, amount, receiverNonce);
     }
 
     /*//////////////////////////////////////////////////////////////
