@@ -5,7 +5,7 @@ import {Safe} from "safe-contracts/Safe.sol";
 import {Enum} from "safe-contracts/common/Enum.sol";
 
 interface IERC20 {
-  function balanceOf(address) external returns(uint256);
+    function balanceOf(address) external returns (uint256);
 }
 
 /// Signed permission to withdraw tokens from a Safe is expired.
