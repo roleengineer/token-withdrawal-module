@@ -92,7 +92,7 @@ contract TokenWithdrawalModuleTest is Test {
         safeTemplate = Safe(payable(address(factory.createProxyWithNonce(address(singleton), "", 0))));
     }
 
-    /// @notice Generates sorted list of private keys and corresponding owners addresses.
+    /// @notice Generates sorted list of owners addresses and corresponding private keys.
     /// @dev Used for different Safe setups based on fuzzing input.
     function _generateSafeOwners(uint256 seed)
         internal
