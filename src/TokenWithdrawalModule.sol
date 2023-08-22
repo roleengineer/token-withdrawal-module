@@ -97,7 +97,7 @@ contract TokenWithdrawalModule {
      *                   contract signature (EIP-1271) or approved hash.
      * @return success Returns true, if token token transfer is successful.
      */
-    function withdrawFromSafe(address receiver, uint256 amount, uint256 deadline, bytes memory signatures)
+    function withdrawTokenFromSafe(address receiver, uint256 amount, uint256 deadline, bytes memory signatures)
         external
         returns (bool success)
     {
