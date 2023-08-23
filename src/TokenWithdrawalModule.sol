@@ -15,13 +15,7 @@ error BeneficiaryAddressZero();
  *                     of a specific token.
  */
 contract TokenWithdrawalModule {
-    struct WithdrawalPermit {
-        address receiver;
-        uint256 amount;
-        uint256 deadline;
-        uint256 nonce;
-    }
-
+  
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -36,6 +30,9 @@ contract TokenWithdrawalModule {
 
     /// @notice Token contract address, which this module is specific to.
     address public token;
+
+    /// @notice Implementation name.
+    string public constant NAME = "Token Withdrawal Module";
 
     /// @notice Version of current implementation.
     string public constant VERSION = "1";
@@ -71,7 +68,7 @@ contract TokenWithdrawalModule {
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 DOMAIN_SEPARATOR_TYPEHASH,
-                keccak256(bytes(type(TokenWithdrawalModule).name)),
+                keccak256(bytes(NAME)),
                 keccak256(bytes(VERSION)),
                 block.chainid,
                 address(this)
