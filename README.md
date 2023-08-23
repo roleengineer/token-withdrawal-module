@@ -25,5 +25,5 @@ $ forge test
 ### Deploy
 
 ```shell
-$ forge script script/DeployScript.s.sol:DeployScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script script/DeployScript.s.sol:DeployScript -s "deployModule(address,address)" <your_safe_address> <your_token_address> --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
