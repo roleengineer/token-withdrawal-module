@@ -15,7 +15,6 @@ error BeneficiaryAddressZero();
  *                     of a specific token.
  */
 contract TokenWithdrawalModule {
-  
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -112,8 +111,13 @@ contract TokenWithdrawalModule {
 
         // Ask safe to execute token transfer.
         bytes memory returnData;
-        (success, returnData) = safe.execTransactionFromModuleReturnData(token, 0, tokenTransferData, Enum.Operation.Call);
-        if (!success) assembly { revert(add(returnData, 0x20), mload(returnData)) }
+        (success, returnData) =
+            safe.execTransactionFromModuleReturnData(token, 0, tokenTransferData, Enum.Operation.Call);
+        if (!success) {
+            assembly {
+                revert(add(returnData, 0x20), mload(returnData))
+            }
+        }
         emit TokenWithdrawalSuccess(receiver, amount, receiverNonce);
     }
 
