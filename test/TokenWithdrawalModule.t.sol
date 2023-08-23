@@ -109,16 +109,14 @@ contract TokenWithdrawalModuleTest is Test {
             uint256 privateKey = uint256(keccak256(abi.encodePacked(seed, i)));
             vm.assume(privateKey < 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141);
             address owner = vm.addr(privateKey);
-            uint256 indexToInsert = 0;
-            while (indexToInsert < i && owner > owners[indexToInsert]) {
-                indexToInsert++;
+            uint index = i;
+            while (index > 0 && owners[index - 1] > owner) {
+                owners[index] = owners[index - 1];
+                privateKeys[index] = privateKeys[index - 1];
+                index--;
             }
-            for (uint256 k = i; k > indexToInsert; k--) {
-                owners[k] = owners[k - 1];
-                privateKeys[k] = privateKeys[k - 1];
-            }
-            owners[indexToInsert] = owner;
-            privateKeys[indexToInsert] = privateKey;
+            owners[index] = owner;
+            privateKeys[index] = privateKey;
         }
     }
 
