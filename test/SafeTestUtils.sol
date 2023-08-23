@@ -5,7 +5,7 @@ import {Test, console2} from "forge-std/Test.sol";
 import {Safe} from "safe-contracts/Safe.sol";
 import {SafeProxyFactory} from "safe-contracts/proxies/SafeProxyFactory.sol";
 
-/// @notice Safe specific extension of forge test contract.
+/// @title Safe specific extension of a forge test contract.
 contract SafeTestUtils is Test {
     event EnabledModule(address indexed module);
     event DisabledModule(address indexed module);
@@ -21,7 +21,8 @@ contract SafeTestUtils is Test {
 
     /// @notice Returns deployed safe proxy without setup.
     function _getSafeTemplate() internal returns (Safe safeTemplate) {
-        safeTemplate = Safe(payable(address(factory.createProxyWithNonce(address(singleton), "", 0))));
+        safeTemplate =
+            Safe(payable(address(factory.createProxyWithNonce(address(singleton), "", 0))));
     }
 
     /// @notice Generates sorted list of owners addresses and corresponding private keys.
@@ -39,7 +40,9 @@ contract SafeTestUtils is Test {
 
         for (uint256 i = 0; i < ownerCount; i++) {
             uint256 privateKey = uint256(keccak256(abi.encodePacked(seed, i)));
-            while (privateKey > 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140) {
+            while (
+                privateKey > 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140
+            ) {
                 privateKey = uint256(keccak256(abi.encodePacked(privateKey)));
             }
             address owner = vm.addr(privateKey);
@@ -55,21 +58,38 @@ contract SafeTestUtils is Test {
     }
 
     /// @notice Calls Safe setup function and enables provided module.
-    function _setupSafeAndEnableModule(Safe _safe, address[] memory owners, address moduleToEnable)
+    function _setupSafeAndEnableModule(
+        Safe _safe,
+        address[] memory owners,
+        address moduleToEnable
+    )
         internal
         returns (bool moduleEnabled)
     {
         uint256 threshold = owners.length > 1 ? owners.length - 1 : owners.length;
         // prepare calldata for delegatecall from Safe to this contract
-        bytes memory enableModuleData = abi.encodeWithSignature("enableSafeModule(address)", moduleToEnable);
+        bytes memory enableModuleData =
+            abi.encodeWithSignature("enableSafeModule(address)", moduleToEnable);
         // call Safe setup
-        _safe.setup(owners, threshold, address(this), enableModuleData, address(0), address(0), 0, payable(address(0)));
+        _safe.setup(
+            owners,
+            threshold,
+            address(this),
+            enableModuleData,
+            address(0),
+            address(0),
+            0,
+            payable(address(0))
+        );
         // return true, if module was enabled successfully
         moduleEnabled = _safe.isModuleEnabled(moduleToEnable);
     }
 
     /// @notice Signs digest by the list of private keys and returns concatenated signatures.
-    function _signDigestByEOAList(bytes32 digest, uint256[] memory privateKeys)
+    function _signDigestByEOAList(
+        bytes32 digest,
+        uint256[] memory privateKeys
+    )
         internal
         pure
         returns (bytes memory signatures)

@@ -18,7 +18,9 @@ contract TokenWithdrawalModule {
     /*//////////////////////////////////////////////////////////////
                                EVENTS
     //////////////////////////////////////////////////////////////*/
-    event TokenWithdrawalSuccess(address indexed beneficiary, uint256 indexed amount, uint256 indexed nonce);
+    event TokenWithdrawalSuccess(
+        address indexed beneficiary, uint256 indexed amount, uint256 indexed nonce
+    );
 
     /*//////////////////////////////////////////////////////////////
                             MODULE STORAGE
@@ -88,7 +90,12 @@ contract TokenWithdrawalModule {
      *                   contract signature (EIP-1271) or approved hash.
      * @return success Returns true, if token token transfer is successful.
      */
-    function withdrawTokenFromSafe(address receiver, uint256 amount, uint256 deadline, bytes memory signatures)
+    function withdrawTokenFromSafe(
+        address receiver,
+        uint256 amount,
+        uint256 deadline,
+        bytes memory signatures
+    )
         external
         returns (bool success)
     {
@@ -97,7 +104,8 @@ contract TokenWithdrawalModule {
 
         uint256 receiverNonce = nonces[receiver];
 
-        bytes memory withdrawalPermitMessage = encodeWithdrawalPermitData(receiver, amount, deadline, receiverNonce);
+        bytes memory withdrawalPermitMessage =
+            encodeWithdrawalPermitData(receiver, amount, deadline, receiverNonce);
 
         // Increase receiver nonce.
         nonces[receiver]++;
@@ -107,12 +115,14 @@ contract TokenWithdrawalModule {
         // Ask safe to check signatures.
         safe.checkSignatures(withdrawalPermitHash, withdrawalPermitMessage, signatures);
 
-        bytes memory tokenTransferData = abi.encodeWithSignature("transfer(address,uint256)", receiver, amount);
+        bytes memory tokenTransferData =
+            abi.encodeWithSignature("transfer(address,uint256)", receiver, amount);
 
         // Ask safe to execute token transfer.
         bytes memory returnData;
-        (success, returnData) =
-            safe.execTransactionFromModuleReturnData(token, 0, tokenTransferData, Enum.Operation.Call);
+        (success, returnData) = safe.execTransactionFromModuleReturnData(
+            token, 0, tokenTransferData, Enum.Operation.Call
+        );
         if (!success) {
             assembly {
                 revert(add(returnData, 0x20), mload(returnData))
@@ -133,14 +143,22 @@ contract TokenWithdrawalModule {
      * @param nonce Beneficiary nonce.
      * @return EIP-712 message (66 bytes), ready to be hashed and signed.
      */
-    function encodeWithdrawalPermitData(address receiver, uint256 amount, uint256 deadline, uint256 nonce)
+    function encodeWithdrawalPermitData(
+        address receiver,
+        uint256 amount,
+        uint256 deadline,
+        uint256 nonce
+    )
         public
         view
         returns (bytes memory)
     {
-        bytes32 withdrawalPermitHash =
-            keccak256(abi.encode(WITHDRAWAL_PERMIT_TYPEHASH, receiver, amount, deadline, nonce));
-        return abi.encodePacked(bytes1(0x19), bytes1(0x01), DOMAIN_SEPARATOR, withdrawalPermitHash);
+        bytes32 withdrawalPermitHash = keccak256(
+            abi.encode(WITHDRAWAL_PERMIT_TYPEHASH, receiver, amount, deadline, nonce)
+        );
+        return abi.encodePacked(
+            bytes1(0x19), bytes1(0x01), DOMAIN_SEPARATOR, withdrawalPermitHash
+        );
     }
 
     /**
@@ -151,7 +169,12 @@ contract TokenWithdrawalModule {
      * @param nonce Beneficiary nonce.
      * @return Withdrawal permit hash.
      */
-    function getWithdrawalPermitHash(address receiver, uint256 amount, uint256 deadline, uint256 nonce)
+    function getWithdrawalPermitHash(
+        address receiver,
+        uint256 amount,
+        uint256 deadline,
+        uint256 nonce
+    )
         public
         view
         returns (bytes32)

@@ -14,5 +14,17 @@ mainnet = { key = "${ETHERSCAN_KEY}"}
 goerli = { key = "${ETHERSCAN_KEY}"}
 [fuzz]
 runs = 256
+[fmt]
+line_length = 95
+tab_width = 4
+bracket_spacing = false
+int_types = "long"
+multiline_func_header = "all"
+quote_style = "double"
+number_underscore = "thousands"
+override_spacing = true
+wrap_comments = false
+ignore = []
+
 [profile.special]
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

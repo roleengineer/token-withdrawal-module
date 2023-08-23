@@ -28,7 +28,13 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         tokenWithdrawalModule = new TokenWithdrawalModule(safe, address(unicorn));
     }
 
-    function testFuzz_WithdrawTokensFromSafe(uint256 seed, address beneficiary, uint256 amount) public {
+    function testFuzz_WithdrawTokensFromSafe(
+        uint256 seed,
+        address beneficiary,
+        uint256 amount
+    )
+        public
+    {
         // fuzzing assumptions
         vm.assume(amount < TOTAL_SUPPLY);
         vm.assume(beneficiary != address(0));
@@ -41,15 +47,20 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         uint256 expirationTimestamp = block.timestamp + 1;
         uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
         // get digest to sign
-        bytes32 digest =
-            tokenWithdrawalModule.getWithdrawalPermitHash(beneficiary, amount, expirationTimestamp, beneficiaryNonce);
+        bytes32 digest = tokenWithdrawalModule.getWithdrawalPermitHash(
+            beneficiary, amount, expirationTimestamp, beneficiaryNonce
+        );
         // sign data and compile signatures
         bytes memory signatures = _signDigestByEOAList(digest, privateKeys);
 
         vm.expectEmit(true, false, false, false, address(safe));
         emit ExecutionFromModuleSuccess(address(tokenWithdrawalModule));
         // call withrdaw token
-        assertTrue(tokenWithdrawalModule.withdrawTokenFromSafe(beneficiary, amount, expirationTimestamp, signatures));
+        assertTrue(
+            tokenWithdrawalModule.withdrawTokenFromSafe(
+                beneficiary, amount, expirationTimestamp, signatures
+            )
+        );
         // beneficiary received amount
         assertEq(unicorn.balanceOf(beneficiary), amount);
     }
