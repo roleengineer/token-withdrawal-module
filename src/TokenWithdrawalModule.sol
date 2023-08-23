@@ -4,14 +4,10 @@ pragma solidity ^0.8.20;
 import {Safe} from "safe-contracts/Safe.sol";
 import {Enum} from "safe-contracts/common/Enum.sol";
 
-interface IERC20 {
-    function balanceOf(address) external returns (uint256);
-}
-
 /// Signed permission to withdraw tokens from a Safe is expired.
 error WithdrawalPermitExpired();
-/// Token withdrawals is not possible due to Safe token balance is less than requested.
-error InsufficientSafeBalance();
+/// Token transfer to address(0) are not supported, as many ERC20 implementation dissallow them.
+error BeneficiaryAddressZero();
 
 /**
  * @title TokenWithdrawalModule - Safe module, which allows accounts that are
@@ -30,7 +26,6 @@ contract TokenWithdrawalModule {
                                EVENTS
     //////////////////////////////////////////////////////////////*/
     event TokenWithdrawalSuccess(address indexed beneficiary, uint256 indexed amount, uint256 indexed nonce);
-    event TokenWithdrawalFailure(address indexed beneficiary, uint256 indexed amount, uint256 indexed nonce);
 
     /*//////////////////////////////////////////////////////////////
                             MODULE STORAGE
@@ -102,7 +97,7 @@ contract TokenWithdrawalModule {
         returns (bool success)
     {
         if (deadline < block.timestamp) revert WithdrawalPermitExpired();
-        if (IERC20(token).balanceOf(address(safe)) < amount) revert InsufficientSafeBalance();
+        if (receiver == address(0)) revert BeneficiaryAddressZero();
 
         uint256 receiverNonce = nonces[receiver];
 
@@ -119,9 +114,10 @@ contract TokenWithdrawalModule {
         bytes memory tokenTransferData = abi.encodeWithSignature("transfer(address,uint256)", receiver, amount);
 
         // Ask safe to execute token transfer.
-        success = safe.execTransactionFromModule(token, 0, tokenTransferData, Enum.Operation.Call);
-        if (success) emit TokenWithdrawalSuccess(receiver, amount, receiverNonce);
-        else emit TokenWithdrawalFailure(receiver, amount, receiverNonce);
+        bytes memory returnData;
+        (success, returnData) = safe.execTransactionFromModuleReturnData(token, 0, tokenTransferData, Enum.Operation.Call);
+        if (!success) assembly { revert(add(returnData, 0x20), mload(returnData)) }
+        emit TokenWithdrawalSuccess(receiver, amount, receiverNonce);
     }
 
     /*//////////////////////////////////////////////////////////////
