@@ -11,6 +11,7 @@ contract SafeTestUtils is Test {
     event DisabledModule(address indexed module);
     event ExecutionFromModuleSuccess(address indexed module);
     event ExecutionFromModuleFailure(address indexed module);
+    event ApproveHash(bytes32 indexed approvedHash, address indexed owner);
 
     Safe singleton = new Safe();
     SafeProxyFactory factory = new SafeProxyFactory();

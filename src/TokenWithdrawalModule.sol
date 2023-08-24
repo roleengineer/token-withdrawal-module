@@ -103,12 +103,11 @@ contract TokenWithdrawalModule {
         if (receiver == address(0)) revert BeneficiaryAddressZero();
 
         uint256 receiverNonce = nonces[receiver];
+        // Increase receiver nonce.
+        nonces[receiver]++;
 
         bytes memory withdrawalPermitMessage =
             encodeWithdrawalPermitData(receiver, amount, deadline, receiverNonce);
-
-        // Increase receiver nonce.
-        nonces[receiver]++;
 
         bytes32 withdrawalPermitHash = keccak256(withdrawalPermitMessage);
 
