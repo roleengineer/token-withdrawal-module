@@ -54,8 +54,7 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         // beneficiary has 0 tokens
         assertEq(unicorn.balanceOf(beneficiary), 0);
         // get ready safe
-        (uint256[] memory privateKeys, address[] memory owners) = _generateSafeOwners(seed);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
+        (uint256[] memory privateKeys,) = _getReadySafe(seed);
         // prepare data
         uint256 expirationTimestamp = block.timestamp + 1;
         uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
@@ -65,14 +64,9 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         );
         // safe owners sign data and compile signatures
         bytes memory signatures = _signDigestByEOAList(digest, privateKeys);
-        // expect events to be emitted
-        vm.expectEmit(true, true, true, false, address(unicorn));
-        emit Transfer(address(safe), beneficiary, amount);
-        vm.expectEmit(true, false, false, false, address(safe));
-        emit ExecutionFromModuleSuccess(address(tokenWithdrawalModule));
-        vm.expectEmit(true, true, false, false, address(tokenWithdrawalModule));
-        emit TokenWithdrawalSuccess(beneficiary, amount, beneficiaryNonce);
 
+        // expect events to be emitted
+        _expectSuccessEvents(beneficiary, amount, beneficiaryNonce);
         // call withrdaw token
         assertTrue(
             tokenWithdrawalModule.withdrawTokenFromSafe(
@@ -101,8 +95,7 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         // beneficiary has 0 tokens
         assertEq(unicorn.balanceOf(beneficiary), 0);
         // get ready safe
-        (, address[] memory owners) = _generateSafeOwners(seed);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
+        (, address[] memory owners) = _getReadySafe(seed);
         // prepare data
         uint256 expirationTimestamp = block.timestamp + 1;
         uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
@@ -126,14 +119,9 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
             }
             vm.stopPrank();
         }
-        // expect events to be emitted
-        vm.expectEmit(true, true, true, false, address(unicorn));
-        emit Transfer(address(safe), beneficiary, amount);
-        vm.expectEmit(true, false, false, false, address(safe));
-        emit ExecutionFromModuleSuccess(address(tokenWithdrawalModule));
-        vm.expectEmit(true, true, false, false, address(tokenWithdrawalModule));
-        emit TokenWithdrawalSuccess(beneficiary, amount, beneficiaryNonce);
 
+        // expect events to be emitted
+        _expectSuccessEvents(beneficiary, amount, beneficiaryNonce);
         // call withrdaw token
         assertTrue(
             tokenWithdrawalModule.withdrawTokenFromSafe(
@@ -161,19 +149,9 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         // fuzzing assumptions
         vm.assume(amount < TOTAL_SUPPLY);
         vm.assume(beneficiary != address(0));
-
-        // get ready safe
-        (uint256[] memory privateKeys, address[] memory owners) = _generateSafeOwners(seed);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
-        // prepare data
-        uint256 expirationTimestamp = block.timestamp + 36_000;
-        uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
-        // get digest to sign
-        bytes32 digest = tokenWithdrawalModule.getWithdrawalPermitHash(
-            beneficiary, amount, expirationTimestamp, beneficiaryNonce
-        );
-        // safe owners sign data and compile signatures
-        bytes memory signatures = _signDigestByEOAList(digest, privateKeys);
+        // get ready safe, get beneficiary nonce, pick deadline, get digest, sign.
+        (uint256 expirationTimestamp, bytes memory signatures) =
+            _prepareDataRevertCase(seed, beneficiary, amount);
 
         // make block.timestamp > expirationTimestamp
         vm.warp(expirationTimestamp + 3600);
@@ -192,18 +170,9 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         // fuzzing assumptions
         vm.assume(amount < TOTAL_SUPPLY);
         address beneficiary = address(0);
-        // get ready safe
-        (uint256[] memory privateKeys, address[] memory owners) = _generateSafeOwners(seed);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
-        // prepare data
-        uint256 expirationTimestamp = block.timestamp + 36_000;
-        uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
-        // get digest to sign
-        bytes32 digest = tokenWithdrawalModule.getWithdrawalPermitHash(
-            beneficiary, amount, expirationTimestamp, beneficiaryNonce
-        );
-        // safe owners sign data and compile signatures
-        bytes memory signatures = _signDigestByEOAList(digest, privateKeys);
+        // get ready safe, get beneficiary nonce, pick deadline, get digest, sign.
+        (uint256 expirationTimestamp, bytes memory signatures) =
+            _prepareDataRevertCase(seed, beneficiary, amount);
 
         // expect tx revert
         vm.expectRevert(BeneficiaryAddressZero.selector);
@@ -227,9 +196,8 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         vm.assume(amount < TOTAL_SUPPLY);
         vm.assume(beneficiary != address(0));
         // get ready safe
-        (uint256[] memory privateKeys, address[] memory owners) = _generateSafeOwners(seed);
+        (uint256[] memory privateKeys, address[] memory owners) = _getReadySafe(seed);
         vm.assume(owners.length > 2);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
         // prepare data
         uint256 expirationTimestamp = block.timestamp + 36_000;
         uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
@@ -268,9 +236,8 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         vm.assume(amount < TOTAL_SUPPLY);
         vm.assume(beneficiary != address(0));
         // get ready safe
-        (uint256[] memory privateKeys, address[] memory owners) = _generateSafeOwners(seed);
+        (uint256[] memory privateKeys, address[] memory owners) = _getReadySafe(seed);
         vm.assume(owners.length > 1);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
         // prepare data
         uint256 expirationTimestamp = block.timestamp + 36_000;
         uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
@@ -307,18 +274,9 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         // fuzzing assumptions
         vm.assume(amount < TOTAL_SUPPLY);
         vm.assume(beneficiary != address(0));
-        // get ready safe
-        (uint256[] memory privateKeys, address[] memory owners) = _generateSafeOwners(seed);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
-        // prepare data
-        uint256 expirationTimestamp = block.timestamp + 36_000;
-        uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
-        // get digest to sign
-        bytes32 digest = tokenWithdrawalModule.getWithdrawalPermitHash(
-            beneficiary, amount, expirationTimestamp, beneficiaryNonce
-        );
-        // owners sign data and compile signatures
-        bytes memory signatures = _signDigestByEOAList(digest, privateKeys);
+        // get ready safe, get beneficiary nonce, pick deadline, get digest, sign.
+        (uint256 expirationTimestamp, bytes memory signatures) =
+            _prepareDataRevertCase(seed, beneficiary, amount);
 
         // impersonate safe address to disable module
         vm.startPrank(address(safe));
@@ -349,18 +307,9 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
         vm.assume(beneficiary != address(0));
         // amount requested more than Safe balance
         uint256 amount = unicorn.balanceOf(address(safe)) + 1;
-        // get ready safe
-        (uint256[] memory privateKeys, address[] memory owners) = _generateSafeOwners(seed);
-        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
-        // prepare data
-        uint256 expirationTimestamp = block.timestamp + 36_000;
-        uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
-        // get digest to sign
-        bytes32 digest = tokenWithdrawalModule.getWithdrawalPermitHash(
-            beneficiary, amount, expirationTimestamp, beneficiaryNonce
-        );
-        // owners sign data and compile signatures
-        bytes memory signatures = _signDigestByEOAList(digest, privateKeys);
+        // get ready safe, get beneficiary nonce, pick deadline, get digest, sign.
+        (uint256 expirationTimestamp, bytes memory signatures) =
+            _prepareDataRevertCase(seed, beneficiary, amount);
 
         // expect tx revert (solmate ERC20 handles this error case as arifmethic overflow)
         vm.expectRevert(stdError.arithmeticError);
@@ -424,5 +373,53 @@ contract TokenWithdrawalModuleTest is SafeTestUtils {
                 permit, domainSeparator, modulePermitTypeHash
             )
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+    function _getReadySafe(uint256 seed)
+        internal
+        returns (uint256[] memory privateKeys, address[] memory owners)
+    {
+        // used SafeTestUtils
+        (privateKeys, owners) = _generateSafeOwners(seed);
+        assertTrue(_setupSafeAndEnableModule(safe, owners, address(tokenWithdrawalModule)));
+    }
+
+    function _expectSuccessEvents(
+        address beneficiary,
+        uint256 amount,
+        uint256 beneficiaryNonce
+    )
+        internal
+    {
+        vm.expectEmit(true, true, true, false, address(unicorn));
+        emit Transfer(address(safe), beneficiary, amount);
+        vm.expectEmit(true, false, false, false, address(safe));
+        emit ExecutionFromModuleSuccess(address(tokenWithdrawalModule));
+        vm.expectEmit(true, true, false, false, address(tokenWithdrawalModule));
+        emit TokenWithdrawalSuccess(beneficiary, amount, beneficiaryNonce);
+    }
+
+    function _prepareDataRevertCase(
+        uint256 seed,
+        address beneficiary,
+        uint256 amount
+    )
+        internal
+        returns (uint256 expirationTimestamp, bytes memory signatures)
+    {
+        // get ready safe
+        (uint256[] memory privateKeys,) = _getReadySafe(seed);
+        // prepare data
+        expirationTimestamp = block.timestamp + 36_000;
+        uint256 beneficiaryNonce = tokenWithdrawalModule.nonces(beneficiary);
+        // get digest to sign
+        bytes32 digest = tokenWithdrawalModule.getWithdrawalPermitHash(
+            beneficiary, amount, expirationTimestamp, beneficiaryNonce
+        );
+        // safe owners sign data and compile signatures
+        signatures = _signDigestByEOAList(digest, privateKeys);
     }
 }
